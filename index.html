@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anonymous Chat with Image Links</title>
+<title>Anonymous Chat Room</title>
 <style>
 body { font-family: Arial; max-width: 700px; margin: 20px auto; }
 #chat { border:1px solid #ccc; height:400px; overflow-y:scroll; padding:10px; background:#f9f9f9; margin-bottom:10px; }
-#message, #imageLink { width:60%; padding:5px; margin-bottom:5px; display:block; }
+#message { width:70%; padding:5px; }
 button { padding:5px 10px; margin-left:5px; }
 .msg { margin-bottom:10px; }
-.msg img { max-width:100%; border-radius:5px; display:block; margin-top:5px; }
 #login { text-align:center; margin-top:100px; }
 #login input { padding:5px; margin:5px; }
 </style>
@@ -30,7 +29,6 @@ button { padding:5px 10px; margin-left:5px; }
 <div id="chatContainer" style="display:none;">
   <div id="chat"></div>
   <input type="text" id="message" placeholder="Type a message...">
-  <input type="text" id="imageLink" placeholder="Paste image URL here (optional)">
   <button onclick="sendMessage()">Send</button>
 </div>
 
@@ -69,7 +67,6 @@ function initChat() {
 
   const chatDiv = document.getElementById('chat');
   const messageInput = document.getElementById('message');
-  const imageInput = document.getElementById('imageLink');
 
   let userName = localStorage.getItem('chatName') || prompt("Choose your chat name:") || "Anonymous";
   localStorage.setItem('chatName', userName);
@@ -79,29 +76,18 @@ function initChat() {
     const msg = document.createElement('div');
     msg.className = 'msg';
     msg.textContent = `${data.name}: ${data.text || ""}`;
-    if (data.imageURL) {
-      const img = document.createElement('img');
-      img.src = data.imageURL;
-      msg.appendChild(img);
-    }
     chatDiv.appendChild(msg);
     chatDiv.scrollTop = chatDiv.scrollHeight;
   });
 
   window.sendMessage = function() {
     const text = messageInput.value.trim();
-    const imageURL = imageInput.value.trim();
-
-    if (!text && !imageURL) return alert("Type a message or provide an image URL!");
-
-    chatRef.push({ name: userName, text, imageURL: imageURL || null });
-
+    if (!text) return;
+    chatRef.push({ name: userName, text });
     messageInput.value = '';
-    imageInput.value = '';
   };
 
   messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
-  imageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 }
 </script>
 
