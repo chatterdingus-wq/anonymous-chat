@@ -8,8 +8,9 @@
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
     #chat { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; background: #f9f9f9; margin-bottom: 10px; }
     #message { width: 70%; padding: 5px; margin-bottom: 5px; }
-    button { padding: 5px 10px; margin-left: 5px; }
+    button { padding: 5px 10px; }
     .msg { margin-bottom: 5px; }
+    #consoleInput { width: 70%; padding: 5px; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -18,13 +19,16 @@
 <div id="chat"></div>
 <input type="text" id="message" placeholder="Type a message..." />
 <button onclick="sendMessage()">Send</button>
-<button id="wipeBtn" style="display:none;" onclick="wipeChat()">WIPE ALL CHAT</button>
+
+<h2>Console</h2>
+<input type="text" id="consoleInput" placeholder="Enter command..." />
+<button onclick="runCommand()">Run</button>
 
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
 <script>
-  // 🔹 Your Firebase project configuration
+  // 🔹 Your Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
     authDomain: "anonymouschatters-86252.firebaseapp.com",
@@ -43,18 +47,13 @@
 
   const chatDiv = document.getElementById('chat');
   const messageInput = document.getElementById('message');
-  const wipeBtn = document.getElementById('wipeBtn');
+  const consoleInput = document.getElementById('consoleInput');
 
   // 🔹 One-time username
   let userName = localStorage.getItem('chatName');
   if (!userName) {
     userName = prompt("Choose your chat name (will be remembered on this browser):") || "Anonymous";
     localStorage.setItem('chatName', userName);
-  }
-
-  // 🔹 Only show wipe button if username is Tomas
-  if (userName === "Tomas") {
-    wipeBtn.style.display = "inline-block";
   }
 
   // 🔹 Listen for messages
@@ -71,6 +70,14 @@
   function sendMessage() {
     const text = messageInput.value.trim();
     if (!text) return;
+
+    // Secret wipe command (only you know)
+    if (text === 'wipe1') {
+      runCommand(); // Trigger wipe via console logic
+      messageInput.value = '';
+      return;
+    }
+
     chatRef.push({ name: userName, text });
     messageInput.value = '';
   }
@@ -79,16 +86,27 @@
     if (e.key === 'Enter') sendMessage();
   });
 
-  // 🔹 Wipe chat function (only for Tomas)
-  function wipeChat() {
-    if (userName !== "Tomas") return alert("You are not authorized to wipe the chat.");
-    if (confirm("Are you sure you want to wipe all chat history for everyone?")) {
-      chatRef.remove().then(() => {
-        chatDiv.innerHTML = '';
-        alert("Chat wiped successfully!");
-      });
+  // 🔹 Run secret console commands
+  function runCommand() {
+    const cmd = consoleInput.value.trim();
+
+    if (cmd === 'wipe1') {
+      if (confirm("Are you sure you want to wipe all chat messages?")) {
+        chatRef.remove()
+          .then(() => {
+            chatDiv.innerHTML = ''; // Clear chat locally
+            console.log("All messages wiped!");
+          })
+          .catch(err => console.error(err));
+      }
     }
+
+    consoleInput.value = '';
   }
+
+  consoleInput.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') runCommand();
+  });
 </script>
 
 </body>
