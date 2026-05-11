@@ -3,13 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anonymous Chat Room</title>
+<title>Anonymous Chat with Image Links</title>
 <style>
 body { font-family: Arial; max-width: 700px; margin: 20px auto; }
 #chat { border:1px solid #ccc; height:400px; overflow-y:scroll; padding:10px; background:#f9f9f9; margin-bottom:10px; }
-#message { width:60%; padding:5px; }
-#imageInput { margin-left:5px; }
-#imagePreview { max-width:200px; max-height:150px; display:block; margin:5px 0; }
+#message, #imageLink { width:60%; padding:5px; margin-bottom:5px; display:block; }
 button { padding:5px 10px; margin-left:5px; }
 .msg { margin-bottom:10px; }
 .msg img { max-width:100%; border-radius:5px; display:block; margin-top:5px; }
@@ -32,8 +30,7 @@ button { padding:5px 10px; margin-left:5px; }
 <div id="chatContainer" style="display:none;">
   <div id="chat"></div>
   <input type="text" id="message" placeholder="Type a message...">
-  <input type="file" id="imageInput" accept="image/*">
-  <img id="imagePreview" src="" style="display:none;">
+  <input type="text" id="imageLink" placeholder="Paste image URL here (optional)">
   <button onclick="sendMessage()">Send</button>
 </div>
 
@@ -72,33 +69,19 @@ function initChat() {
 
   const chatDiv = document.getElementById('chat');
   const messageInput = document.getElementById('message');
-  const imageInput = document.getElementById('imageInput');
-  const imagePreview = document.getElementById('imagePreview');
+  const imageInput = document.getElementById('imageLink');
 
   let userName = localStorage.getItem('chatName') || prompt("Choose your chat name:") || "Anonymous";
   localStorage.setItem('chatName', userName);
-
-  imageInput.addEventListener('change', () => {
-    if (imageInput.files[0]) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        imagePreview.src = e.target.result;
-        imagePreview.style.display = 'block';
-      };
-      reader.readAsDataURL(imageInput.files[0]);
-    } else {
-      imagePreview.style.display = 'none';
-    }
-  });
 
   chatRef.on('child_added', snapshot => {
     const data = snapshot.val();
     const msg = document.createElement('div');
     msg.className = 'msg';
     msg.textContent = `${data.name}: ${data.text || ""}`;
-    if (data.imageData) {
+    if (data.imageURL) {
       const img = document.createElement('img');
-      img.src = data.imageData; // Base64 image
+      img.src = data.imageURL;
       msg.appendChild(img);
     }
     chatDiv.appendChild(msg);
@@ -107,27 +90,18 @@ function initChat() {
 
   window.sendMessage = function() {
     const text = messageInput.value.trim();
-    const file = imageInput.files[0];
+    const imageURL = imageInput.value.trim();
 
-    if (!text && !file) return alert("Type a message or select an image!");
+    if (!text && !imageURL) return alert("Type a message or provide an image URL!");
 
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const imageData = e.target.result; // Base64 string
-        chatRef.push({ name: userName, text, imageData });
-        imagePreview.style.display = 'none';
-        imageInput.value = '';
-        messageInput.value = '';
-      };
-      reader.readAsDataURL(file);
-    } else {
-      chatRef.push({ name: userName, text });
-      messageInput.value = '';
-    }
+    chatRef.push({ name: userName, text, imageURL: imageURL || null });
+
+    messageInput.value = '';
+    imageInput.value = '';
   };
 
   messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
+  imageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 }
 </script>
 
