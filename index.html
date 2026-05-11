@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fun Anonymous Chat</title>
+<title>Simple Anonymous Chat</title>
 <style>
     body {
         font-family: 'Segoe UI', sans-serif;
@@ -26,25 +26,11 @@
         overflow-y: scroll;
         padding: 10px;
         background: inherit;
-        border-radius: 10px;
         margin-bottom: 10px;
+        white-space: pre-wrap; /* preserve line breaks */
     }
     .msg {
-        margin-bottom: 8px;
-        padding: 6px 10px;
-        border-radius: 12px;
-        display: inline-block;
-        max-width: 80%;
-        word-wrap: break-word;
-    }
-    .msg.you {
-        background: #4caf50;
-        color: white;
-        align-self: flex-end;
-    }
-    .msg.other {
-        background: #e0e0e0;
-        color: black;
+        margin-bottom: 5px;
     }
     #typingIndicator {
         font-style: italic;
@@ -73,7 +59,7 @@
 </head>
 <body class="light-mode">
 
-<h1>Fun Anonymous Chat 🎉</h1>
+<h1>Simple Anonymous Chat 💬</h1>
 <button id="themeBtn">Toggle Dark/Light Mode</button>
 
 <div id="passwordContainer">
@@ -143,11 +129,6 @@ if(storedPassword === 'Halama'){
     initChat();
 }
 
-function getRandomColor() {
-    const colors = ['#e57373','#f06292','#ba68c8','#9575cd','#64b5f6','#4dd0e1','#81c784','#ffd54f','#ff8a65','#a1887f'];
-    return colors[Math.floor(Math.random()*colors.length)];
-}
-
 function initChat(){
     // Get username per session
     let userName = sessionStorage.getItem('chatName');
@@ -156,16 +137,12 @@ function initChat(){
         sessionStorage.setItem('chatName', userName);
     }
 
-    const userColor = getRandomColor();
-
     // Listen for new messages
     onChildAdded(chatRef, (snapshot) => {
         const data = snapshot.val();
         const msg = document.createElement('div');
         msg.className = 'msg';
         msg.textContent = `${data.name}: ${data.text}`;
-        msg.style.background = (data.name === userName) ? '#4caf50' : getRandomColor();
-        msg.style.color = (data.name === userName) ? '#fff' : '#000';
         chatDiv.appendChild(msg);
         chatDiv.scrollTop = chatDiv.scrollHeight;
     });
