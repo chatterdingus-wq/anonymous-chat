@@ -31,83 +31,91 @@
 </div>
 
 <script type="module">
-  // 🔹 Import Firebase at top level
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
-  import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
 
-  // 🔹 Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
-    authDomain: "anonymouschatters-86252.firebaseapp.com",
-    databaseURL: "https://anonymouschatters-86252-default-rtdb.firebaseio.com",
-    projectId: "anonymouschatters-86252",
-    storageBucket: "anonymouschatters-86252.firebasestorage.app",
-    messagingSenderId: "108101708489",
-    appId: "1:108101708489:web:c564c231a80391409bfb18",
-    measurementId: "G-KVWSMMZJ8C"
-  };
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
+  authDomain: "anonymouschatters-86252.firebaseapp.com",
+  databaseURL: "https://anonymouschatters-86252-default-rtdb.firebaseio.com",
+  projectId: "anonymouschatters-86252",
+  storageBucket: "anonymouschatters-86252.firebasestorage.app",
+  messagingSenderId: "108101708489",
+  appId: "1:108101708489:web:c564c231a80391409bfb18",
+  measurementId: "G-KVWSMMZJ8C"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const chatRef = ref(db, "messages");
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const chatRef = ref(db, "messages");
 
-  const passwordInput = document.getElementById('passwordInput');
-  const passwordBtn = document.getElementById('passwordBtn');
-  const passwordError = document.getElementById('passwordError');
-  const chatContainer = document.getElementById('chatContainer');
-  const passwordContainer = document.getElementById('passwordContainer');
+const passwordInput = document.getElementById('passwordInput');
+const passwordBtn = document.getElementById('passwordBtn');
+const passwordError = document.getElementById('passwordError');
+const chatContainer = document.getElementById('chatContainer');
+const passwordContainer = document.getElementById('passwordContainer');
 
-  function initChat() {
-    const chatDiv = document.getElementById('chat');
-    const messageInput = document.getElementById('message');
-    const sendBtn = document.getElementById('sendBtn');
+// Check if password was already entered
+const storedPassword = localStorage.getItem('chatPassword');
+if (storedPassword === 'Halama') {
+  passwordContainer.style.display = 'none';
+  chatContainer.style.display = 'block';
+  initChat();
+}
 
-    // Pick a name once
-    let userName = localStorage.getItem('chatName');
-    if (!userName) {
-      userName = prompt("Choose your chat name (will be remembered on this browser):") || "Anonymous";
-      localStorage.setItem('chatName', userName);
-    }
+function initChat() {
+  const chatDiv = document.getElementById('chat');
+  const messageInput = document.getElementById('message');
+  const sendBtn = document.getElementById('sendBtn');
 
-    // Listen for new messages
-    onChildAdded(chatRef, (snapshot) => {
-      const data = snapshot.val();
-      const msg = document.createElement('div');
-      msg.className = 'msg';
-      msg.textContent = `${data.name}: ${data.text}`;
-      chatDiv.appendChild(msg);
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    });
-
-    // Send message
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if (!text) return;
-      push(chatRef, { name: userName, text });
-      messageInput.value = '';
-    }
-
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
+  // Check if user already chose a name this session
+  let userName = sessionStorage.getItem('chatName');
+  if (!userName) {
+    userName = prompt("Choose your chat name for this session:") || "Anonymous";
+    sessionStorage.setItem('chatName', userName);
   }
 
-  function checkPassword() {
-    const entered = passwordInput.value.trim();
-    if (entered === 'Halama') {
-      passwordContainer.style.display = 'none';
-      chatContainer.style.display = 'block';
-      initChat();
-    } else {
-      passwordError.style.display = 'block';
-    }
-  }
-
-  passwordBtn.addEventListener('click', checkPassword);
-  passwordInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') checkPassword();
+  // Listen for new messages
+  onChildAdded(chatRef, (snapshot) => {
+    const data = snapshot.val();
+    const msg = document.createElement('div');
+    msg.className = 'msg';
+    msg.textContent = `${data.name}: ${data.text}`;
+    chatDiv.appendChild(msg);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
   });
+
+  // Send message
+  function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    push(chatRef, { name: userName, text });
+    messageInput.value = '';
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  messageInput.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+}
+
+function checkPassword() {
+  const entered = passwordInput.value.trim();
+  if (entered === 'Halama') {
+    localStorage.setItem('chatPassword', entered); // remember password permanently
+    passwordContainer.style.display = 'none';
+    chatContainer.style.display = 'block';
+    initChat();
+  } else {
+    passwordError.style.display = 'block';
+  }
+}
+
+passwordBtn.addEventListener('click', checkPassword);
+passwordInput.addEventListener('keyup', (e) => {
+  if (e.key === 'Enter') checkPassword();
+});
 </script>
 
 </body>
