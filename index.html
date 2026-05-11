@@ -32,6 +32,7 @@ button { padding:5px 10px; margin-left:5px; }
   <button onclick="sendMessage()">Send</button>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
 
@@ -51,6 +52,7 @@ function checkPassword() {
 }
 
 function initChat() {
+  // 🔑 Replace these with your Firebase project credentials
   const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -68,9 +70,11 @@ function initChat() {
   const chatDiv = document.getElementById('chat');
   const messageInput = document.getElementById('message');
 
+  // Ask user for name
   let userName = localStorage.getItem('chatName') || prompt("Choose your chat name:") || "Anonymous";
   localStorage.setItem('chatName', userName);
 
+  // Listen for new messages
   chatRef.on('child_added', snapshot => {
     const data = snapshot.val();
     const msg = document.createElement('div');
@@ -78,8 +82,24 @@ function initChat() {
     msg.textContent = `${data.name}: ${data.text || ""}`;
     chatDiv.appendChild(msg);
     chatDiv.scrollTop = chatDiv.scrollHeight;
+
+    // Vibrate device for incoming message
+    if (navigator.vibrate) {
+      navigator.vibrate(200); // 200ms vibration
+    }
+
+    // Browser notification
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(`${data.name} says:`, { body: data.text });
+    }
   });
 
+  // Request notification permission once
+  if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission().then(permission => console.log("Notification permission:", permission));
+  }
+
+  // Send message function
   window.sendMessage = function() {
     const text = messageInput.value.trim();
     if (!text) return;
@@ -87,6 +107,7 @@ function initChat() {
     messageInput.value = '';
   };
 
+  // Send message on Enter key
   messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 }
 </script>
