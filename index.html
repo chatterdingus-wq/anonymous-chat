@@ -3,19 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anonymous Chat Room with Images</title>
+<title>Anonymous Chat Room</title>
 <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: 20px auto; }
-    #chat { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; background: #f9f9f9; margin-bottom: 10px; }
-    #message { width: 60%; padding: 5px; margin-bottom: 5px; }
-    #imageInput { margin-left: 5px; }
-    #imagePreview { max-width: 200px; max-height: 150px; display: block; margin: 5px 0; }
-    button { padding: 5px 10px; margin-left: 5px; }
-    .msg { margin-bottom: 10px; }
-    .msg img { max-width: 100%; border-radius: 5px; display: block; margin-top: 5px; }
-    #consoleInput { width: 60%; padding: 5px; margin-top: 10px; }
-    #login { text-align: center; margin-top: 100px; }
-    #login input { padding: 5px; margin: 5px; }
+body { font-family: Arial; max-width: 700px; margin: 20px auto; }
+#chat { border:1px solid #ccc; height:400px; overflow-y:scroll; padding:10px; background:#f9f9f9; margin-bottom:10px; }
+#message { width:60%; padding:5px; }
+#imageInput { margin-left:5px; }
+#imagePreview { max-width:200px; max-height:150px; display:block; margin:5px 0; }
+button { padding:5px 10px; margin-left:5px; }
+.msg { margin-bottom:10px; }
+.msg img { max-width:100%; border-radius:5px; display:block; margin-top:5px; }
+#login { text-align:center; margin-top:100px; }
+#login input { padding:5px; margin:5px; }
 </style>
 </head>
 <body>
@@ -23,146 +22,112 @@
 <h1 style="text-align:center;">Anonymous Chat Room</h1>
 
 <div id="login">
-    <p>Password Required</p>
-    <input type="password" id="passwordInput" placeholder="Enter password" />
-    <button onclick="checkPassword()">Enter</button>
-    <p style="font-size: 0.9em; color: gray;">Hint: jaky je Tomášovo přijmení</p>
-    <p id="loginMessage" style="color:red;"></p>
+  <p>Password Required</p>
+  <input type="password" id="passwordInput" placeholder="Enter password">
+  <button onclick="checkPassword()">Enter</button>
+  <p style="font-size:0.9em; color:gray;">Hint: jaky je Tomášovo přijmení</p>
+  <p id="loginMessage" style="color:red;"></p>
 </div>
 
 <div id="chatContainer" style="display:none;">
   <div id="chat"></div>
-  <input type="text" id="message" placeholder="Type a message..." />
-  <input type="file" id="imageInput" accept="image/*" />
-  <img id="imagePreview" src="" style="display:none;" />
+  <input type="text" id="message" placeholder="Type a message...">
+  <input type="file" id="imageInput" accept="image/*">
+  <img id="imagePreview" src="" style="display:none;">
   <button onclick="sendMessage()">Send</button>
-
-  <h2>Console</h2>
-  <input type="text" id="consoleInput" placeholder="Enter command..." />
-  <button onclick="runCommand()">Run</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-storage-compat.js"></script>
+
 <script>
 const correctPassword = "Halama";
 
 function checkPassword() {
-    const pwd = document.getElementById('passwordInput').value;
-    const msg = document.getElementById('loginMessage');
-    if (pwd === correctPassword) {
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('chatContainer').style.display = 'block';
-        initChat();
-    } else {
-        msg.textContent = "Wrong password. Try again!";
-    }
+  const pwd = document.getElementById('passwordInput').value;
+  const msg = document.getElementById('loginMessage');
+  if (pwd === correctPassword) {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('chatContainer').style.display = 'block';
+    initChat();
+  } else {
+    msg.textContent = "Wrong password. Try again!";
+  }
 }
 
 function initChat() {
-    const firebaseConfig = {
-        apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
-        authDomain: "anonymouschatters-86252.firebaseapp.com",
-        databaseURL: "https://anonymouschatters-86252-default-rtdb.firebaseio.com",
-        projectId: "anonymouschatters-86252",
-        storageBucket: "anonymouschatters-86252.appspot.com",
-        messagingSenderId: "108101708489",
-        appId: "1:108101708489:web:c564c231a80391409bfb18",
-        measurementId: "G-KVWSMMZJ8C"
-    };
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const storage = firebase.storage();
-    const chatRef = db.ref('messages');
+  const db = firebase.database();
+  const chatRef = db.ref('messages');
 
-    const chatDiv = document.getElementById('chat');
-    const messageInput = document.getElementById('message');
-    const consoleInput = document.getElementById('consoleInput');
-    const imageInput = document.getElementById('imageInput');
-    const imagePreview = document.getElementById('imagePreview');
+  const chatDiv = document.getElementById('chat');
+  const messageInput = document.getElementById('message');
+  const imageInput = document.getElementById('imageInput');
+  const imagePreview = document.getElementById('imagePreview');
 
-    let userName = localStorage.getItem('chatName') || prompt("Choose your chat name:") || "Anonymous";
-    localStorage.setItem('chatName', userName);
+  let userName = localStorage.getItem('chatName') || prompt("Choose your chat name:") || "Anonymous";
+  localStorage.setItem('chatName', userName);
 
-    if ("Notification" in window && Notification.permission !== "granted") {
-        Notification.requestPermission();
+  imageInput.addEventListener('change', () => {
+    if (imageInput.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        imagePreview.src = e.target.result;
+        imagePreview.style.display = 'block';
+      };
+      reader.readAsDataURL(imageInput.files[0]);
+    } else {
+      imagePreview.style.display = 'none';
     }
+  });
 
-    // Preview selected image
-    imageInput.addEventListener('change', () => {
-        if (imageInput.files && imageInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imagePreview.src = e.target.result;
-                imagePreview.style.display = 'block';
-            };
-            reader.readAsDataURL(imageInput.files[0]);
-        } else {
-            imagePreview.style.display = 'none';
-        }
-    });
+  chatRef.on('child_added', snapshot => {
+    const data = snapshot.val();
+    const msg = document.createElement('div');
+    msg.className = 'msg';
+    msg.textContent = `${data.name}: ${data.text || ""}`;
+    if (data.imageData) {
+      const img = document.createElement('img');
+      img.src = data.imageData; // Base64 image
+      msg.appendChild(img);
+    }
+    chatDiv.appendChild(msg);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  });
 
-    chatRef.on('child_added', (snapshot) => {
-        const data = snapshot.val();
-        const msg = document.createElement('div');
-        msg.className = 'msg';
-        msg.textContent = `${data.name}: ${data.text || ""}`;
-        if (data.imageURL) {
-            const img = document.createElement('img');
-            img.src = data.imageURL;
-            msg.appendChild(img);
-        }
-        chatDiv.appendChild(msg);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
+  window.sendMessage = function() {
+    const text = messageInput.value.trim();
+    const file = imageInput.files[0];
 
-        if (data.name !== userName && "Notification" in window && Notification.permission === "granted") {
-            new Notification(`New message from ${data.name}`, {
-                body: data.text || "Image sent",
-                icon: 'https://cdn-icons-png.flaticon.com/512/2462/2462719.png'
-            });
-        }
-    });
+    if (!text && !file) return alert("Type a message or select an image!");
 
-    window.sendMessage = function() {
-        const text = messageInput.value.trim();
-        const file = imageInput.files[0];
-
-        if (!text && !file) return alert("Type a message or select an image!");
-
-        if (file) {
-            const storageRef = storage.ref(`chat_images/${Date.now()}_${file.name}`);
-            storageRef.put(file)
-            .then(snapshot => snapshot.ref.getDownloadURL())
-            .then(url => {
-                chatRef.push({ name: userName, text, imageURL: url });
-                imagePreview.style.display = 'none';
-                imageInput.value = '';
-            })
-            .catch(err => console.error("Upload failed:", err));
-        } else {
-            chatRef.push({ name: userName, text });
-        }
-
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const imageData = e.target.result; // Base64 string
+        chatRef.push({ name: userName, text, imageData });
+        imagePreview.style.display = 'none';
+        imageInput.value = '';
         messageInput.value = '';
-    };
+      };
+      reader.readAsDataURL(file);
+    } else {
+      chatRef.push({ name: userName, text });
+      messageInput.value = '';
+    }
+  };
 
-    messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
-
-    window.runCommand = function() {
-        const cmd = consoleInput.value.trim();
-        if (cmd === 'wipe1') {
-            if (confirm("Are you sure you want to wipe all chat messages?")) {
-                chatRef.remove()
-                    .then(() => { chatDiv.innerHTML = ''; console.log("All messages wiped!"); })
-                    .catch(err => console.error(err));
-            }
-        }
-        consoleInput.value = '';
-    };
-
-    consoleInput.addEventListener('keyup', e => { if (e.key === 'Enter') runCommand(); });
+  messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 }
 </script>
 
