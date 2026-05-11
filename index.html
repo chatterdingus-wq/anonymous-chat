@@ -1,17 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Anonymous Chat Room</title>
 <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding-bottom: 40px; }
     #chat { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; background: #f9f9f9; margin-bottom: 10px; }
     #message { width: 70%; padding: 5px; margin-bottom: 5px; }
     button { padding: 5px 10px; margin-left: 5px; }
     .msg { margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
     .msg-text { flex: 1; }
     #wipeBtn { margin-top: 10px; background-color: #ff4d4d; color: white; border: none; cursor: pointer; }
+    /* Footer */
+    #footer { text-align: center; color: #555; font-size: 0.9em; position: fixed; bottom: 10px; width: 100%; }
 </style>
 </head>
 <body>
@@ -22,6 +24,9 @@
 <button onclick="sendMessage()">Send</button>
 <br>
 <button id="wipeBtn">🧹 Wipe All Chats</button>
+
+<!-- Footer credit -->
+<div id="footer">Vytvořil Thomas Halama</div>
 
 <!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
