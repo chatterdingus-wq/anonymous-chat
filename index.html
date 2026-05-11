@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instant Anonymous Chat</title>
+<title>Instant Anonymous Chat with Typing Indicator</title>
 <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
     #chatContainer { display: none; }
@@ -11,6 +11,7 @@
     #message { width: 70%; padding: 5px; margin-bottom: 5px; }
     button { padding: 5px 10px; }
     .msg { margin-bottom: 5px; }
+    #typingIndicator { font-style: italic; color: #555; height: 18px; margin-bottom: 5px; }
 </style>
 </head>
 <body>
@@ -26,15 +27,16 @@
 
 <div id="chatContainer">
   <div id="chat"></div>
+  <div id="typingIndicator"></div>
   <input type="text" id="message" placeholder="Type a message..." />
   <button id="sendBtn">Send</button>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
+import { getDatabase, ref, push, onChildAdded, set, onValue } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
 
-// Firebase config
+// 🔹 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
   authDomain: "anonymouschatters-86252.firebaseapp.com",
@@ -49,12 +51,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "messages");
+const typingRef = ref(db, "typing");
 
 const passwordInput = document.getElementById('passwordInput');
 const passwordBtn = document.getElementById('passwordBtn');
 const passwordError = document.getElementById('passwordError');
 const chatContainer = document.getElementById('chatContainer');
 const passwordContainer = document.getElementById('passwordContainer');
+const typingIndicatorDiv = document.getElementById('typingIndicator');
 
 // Check if password was already entered
 const storedPassword = localStorage.getItem('chatPassword');
@@ -86,17 +90,38 @@ function initChat() {
     chatDiv.scrollTop = chatDiv.scrollHeight;
   });
 
+  // Typing indicator logic
+  messageInput.addEventListener('input', () => {
+    set(typingRef, { name: userName, typing: messageInput.value.trim() !== '' });
+  });
+
+  // Listen for others typing
+  onValue(typingRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.name !== userName && data.typing) {
+      typingIndicatorDiv.textContent = `${data.name} is typing...`;
+    } else {
+      typingIndicatorDiv.textContent = '';
+    }
+  });
+
   // Send message
   function sendMessage() {
     const text = messageInput.value.trim();
     if (!text) return;
     push(chatRef, { name: userName, text });
     messageInput.value = '';
+    set(typingRef, { name: userName, typing: false }); // reset typing indicator
   }
 
   sendBtn.addEventListener('click', sendMessage);
   messageInput.addEventListener('keyup', (e) => {
     if (e.key === 'Enter') sendMessage();
+  });
+
+  // Clear typing on page unload
+  window.addEventListener('beforeunload', () => {
+    set(typingRef, { name: userName, typing: false });
   });
 }
 
