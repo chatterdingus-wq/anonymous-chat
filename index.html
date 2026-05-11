@@ -3,20 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Instant Anonymous Chat with Typing Indicator</title>
+<title>Fun Anonymous Chat</title>
 <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        max-width: 600px;
+        margin: 20px auto;
+        transition: background 0.3s, color 0.3s;
+    }
+    .light-mode {
+        background: #f9f9f9;
+        color: #222;
+    }
+    .dark-mode {
+        background: #121212;
+        color: #eee;
+    }
     #chatContainer { display: none; }
-    #chat { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; background: #f9f9f9; margin-bottom: 10px; }
-    #message { width: 70%; padding: 5px; margin-bottom: 5px; }
-    button { padding: 5px 10px; }
-    .msg { margin-bottom: 5px; }
-    #typingIndicator { font-style: italic; color: #555; height: 18px; margin-bottom: 5px; }
+    #chat {
+        border: 1px solid #ccc;
+        height: 400px;
+        overflow-y: scroll;
+        padding: 10px;
+        background: inherit;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    .msg {
+        margin-bottom: 8px;
+        padding: 6px 10px;
+        border-radius: 12px;
+        display: inline-block;
+        max-width: 80%;
+        word-wrap: break-word;
+    }
+    .msg.you {
+        background: #4caf50;
+        color: white;
+        align-self: flex-end;
+    }
+    .msg.other {
+        background: #e0e0e0;
+        color: black;
+    }
+    #typingIndicator {
+        font-style: italic;
+        color: #555;
+        height: 20px;
+        margin-bottom: 5px;
+    }
+    #message {
+        width: 70%;
+        padding: 8px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        outline: none;
+    }
+    button {
+        padding: 7px 12px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+    #themeBtn {
+        margin-bottom: 10px;
+    }
 </style>
 </head>
-<body>
+<body class="light-mode">
 
-<h1>Anonymous Chat Room</h1>
+<h1>Fun Anonymous Chat 🎉</h1>
+<button id="themeBtn">Toggle Dark/Light Mode</button>
 
 <div id="passwordContainer">
   <p>Please enter the password to join the chat. Hint: <em>jaky je jmeno tomáše?</em></p>
@@ -36,7 +94,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, set, onValue } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
 
-// 🔹 Firebase config
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
   authDomain: "anonymouschatters-86252.firebaseapp.com",
@@ -53,95 +111,112 @@ const db = getDatabase(app);
 const chatRef = ref(db, "messages");
 const typingRef = ref(db, "typing");
 
+// Elements
+const body = document.body;
+const themeBtn = document.getElementById('themeBtn');
 const passwordInput = document.getElementById('passwordInput');
 const passwordBtn = document.getElementById('passwordBtn');
 const passwordError = document.getElementById('passwordError');
 const chatContainer = document.getElementById('chatContainer');
 const passwordContainer = document.getElementById('passwordContainer');
+const chatDiv = document.getElementById('chat');
 const typingIndicatorDiv = document.getElementById('typingIndicator');
+const messageInput = document.getElementById('message');
+const sendBtn = document.getElementById('sendBtn');
 
-// Check if password was already entered
-const storedPassword = localStorage.getItem('chatPassword');
-if (storedPassword === 'Halama') {
-  passwordContainer.style.display = 'none';
-  chatContainer.style.display = 'block';
-  initChat();
-}
-
-function initChat() {
-  const chatDiv = document.getElementById('chat');
-  const messageInput = document.getElementById('message');
-  const sendBtn = document.getElementById('sendBtn');
-
-  // Check if user already chose a name this session
-  let userName = sessionStorage.getItem('chatName');
-  if (!userName) {
-    userName = prompt("Choose your chat name for this session:") || "Anonymous";
-    sessionStorage.setItem('chatName', userName);
-  }
-
-  // Listen for new messages
-  onChildAdded(chatRef, (snapshot) => {
-    const data = snapshot.val();
-    const msg = document.createElement('div');
-    msg.className = 'msg';
-    msg.textContent = `${data.name}: ${data.text}`;
-    chatDiv.appendChild(msg);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-  });
-
-  // Typing indicator logic
-  messageInput.addEventListener('input', () => {
-    set(typingRef, { name: userName, typing: messageInput.value.trim() !== '' });
-  });
-
-  // Listen for others typing
-  onValue(typingRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.name !== userName && data.typing) {
-      typingIndicatorDiv.textContent = `${data.name} is typing...`;
+// Dark/Light Mode Toggle
+themeBtn.addEventListener('click', () => {
+    if(body.classList.contains('light-mode')){
+        body.classList.remove('light-mode');
+        body.classList.add('dark-mode');
     } else {
-      typingIndicatorDiv.textContent = '';
+        body.classList.remove('dark-mode');
+        body.classList.add('light-mode');
     }
-  });
+});
 
-  // Send message
-  function sendMessage() {
-    const text = messageInput.value.trim();
-    if (!text) return;
-    push(chatRef, { name: userName, text });
-    messageInput.value = '';
-    set(typingRef, { name: userName, typing: false }); // reset typing indicator
-  }
-
-  sendBtn.addEventListener('click', sendMessage);
-  messageInput.addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') sendMessage();
-  });
-
-  // Clear typing on page unload
-  window.addEventListener('beforeunload', () => {
-    set(typingRef, { name: userName, typing: false });
-  });
-}
-
-function checkPassword() {
-  const entered = passwordInput.value.trim();
-  if (entered === 'Halama') {
-    localStorage.setItem('chatPassword', entered); // remember password permanently
+// Check stored password
+const storedPassword = localStorage.getItem('chatPassword');
+if(storedPassword === 'Halama'){
     passwordContainer.style.display = 'none';
     chatContainer.style.display = 'block';
     initChat();
-  } else {
-    passwordError.style.display = 'block';
-  }
+}
+
+function getRandomColor() {
+    const colors = ['#e57373','#f06292','#ba68c8','#9575cd','#64b5f6','#4dd0e1','#81c784','#ffd54f','#ff8a65','#a1887f'];
+    return colors[Math.floor(Math.random()*colors.length)];
+}
+
+function initChat(){
+    // Get username per session
+    let userName = sessionStorage.getItem('chatName');
+    if(!userName){
+        userName = prompt("Choose your chat name for this session:") || "Anonymous";
+        sessionStorage.setItem('chatName', userName);
+    }
+
+    const userColor = getRandomColor();
+
+    // Listen for new messages
+    onChildAdded(chatRef, (snapshot) => {
+        const data = snapshot.val();
+        const msg = document.createElement('div');
+        msg.className = 'msg';
+        msg.textContent = `${data.name}: ${data.text}`;
+        msg.style.background = (data.name === userName) ? '#4caf50' : getRandomColor();
+        msg.style.color = (data.name === userName) ? '#fff' : '#000';
+        chatDiv.appendChild(msg);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
+
+    // Typing indicator
+    messageInput.addEventListener('input', () => {
+        set(typingRef, { name: userName, typing: messageInput.value.trim() !== '' });
+    });
+
+    onValue(typingRef, snapshot => {
+        const data = snapshot.val();
+        if(data && data.name !== userName && data.typing){
+            typingIndicatorDiv.textContent = `${data.name} is typing...`;
+        } else {
+            typingIndicatorDiv.textContent = '';
+        }
+    });
+
+    // Send message
+    function sendMessage(){
+        const text = messageInput.value.trim();
+        if(!text) return;
+        push(chatRef, { name: userName, text });
+        messageInput.value = '';
+        set(typingRef, { name: userName, typing: false });
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keyup', (e)=>{ if(e.key==='Enter') sendMessage(); });
+
+    window.addEventListener('beforeunload', () => {
+        set(typingRef, { name: userName, typing: false });
+    });
+}
+
+// Password check
+function checkPassword(){
+    const entered = passwordInput.value.trim();
+    if(entered === 'Halama'){
+        localStorage.setItem('chatPassword', entered);
+        passwordContainer.style.display = 'none';
+        chatContainer.style.display = 'block';
+        initChat();
+    } else {
+        passwordError.style.display = 'block';
+    }
 }
 
 passwordBtn.addEventListener('click', checkPassword);
-passwordInput.addEventListener('keyup', (e) => {
-  if (e.key === 'Enter') checkPassword();
-});
-</script>
+passwordInput.addEventListener('keyup', e=>{ if(e.key==='Enter') checkPassword(); });
 
+</script>
 </body>
 </html>
