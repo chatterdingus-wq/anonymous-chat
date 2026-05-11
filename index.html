@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat + Pong Game</title>
 <style>
-    body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 20px auto; transition: background 0.3s, color 0.3s; }
-    .light-mode { background: #f9f9f9; color: #222; }
-    .dark-mode { background: #121212; color: #eee; }
-    #chatContainer, #gameContainer { display: none; }
-    #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-    .msg { margin-bottom: 5px; }
-    #typingIndicator { font-style: italic; color: #555; height: 20px; margin-bottom: 5px; }
-    #message { width: 70%; padding: 8px; margin-bottom: 5px; border-radius: 5px; border: 1px solid #ccc; outline: none; }
-    button { padding: 7px 12px; border-radius: 5px; border: none; cursor: pointer; margin-bottom: 5px; }
-    #themeBtn { margin-bottom: 10px; }
-    #gameCanvas { border: 1px solid #555; background: #000; display:block; margin: 10px auto; touch-action: none; }
+body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 20px auto; transition: background 0.3s, color 0.3s; }
+.light-mode { background: #f9f9f9; color: #222; }
+.dark-mode { background: #121212; color: #eee; }
+#chatContainer, #gameContainer { display: none; }
+#chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+.msg { margin-bottom: 5px; }
+#typingIndicator { font-style: italic; color: #555; height: 20px; margin-bottom: 5px; }
+#message { width: 70%; padding: 8px; margin-bottom: 5px; border-radius: 5px; border: 1px solid #ccc; outline: none; }
+button { padding: 7px 12px; border-radius: 5px; border: none; cursor: pointer; margin-bottom: 5px; }
+#themeBtn { margin-bottom: 10px; }
+#gameCanvas { border: 1px solid #555; background: #000; display:block; margin: 10px auto; touch-action: none; }
 </style>
 </head>
 <body class="light-mode">
@@ -25,7 +25,6 @@
 <button id="chatBtn">Chat Mode</button>
 <button id="gameBtn">Game Mode</button>
 
-<!-- Password Section -->
 <div id="passwordContainer">
   <p>Please enter the password to join the chat/game. Hint: <em>jaky je jmeno tomáše?</em></p>
   <input type="password" id="passwordInput" placeholder="Password" />
@@ -33,7 +32,6 @@
   <p id="passwordError" style="color:red; display:none;">Incorrect password!</p>
 </div>
 
-<!-- Chat Section -->
 <div id="chatContainer">
   <div id="chat"></div>
   <div id="typingIndicator"></div>
@@ -41,7 +39,6 @@
   <button id="sendBtn">Send</button>
 </div>
 
-<!-- Game Section -->
 <div id="gameContainer">
   <canvas id="gameCanvas" width="400" height="300"></canvas>
 </div>
@@ -50,7 +47,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, set, onValue } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
 
-// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
   authDomain: "anonymouschatters-86252.firebaseapp.com",
@@ -65,9 +61,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "messages");
 const typingRef = ref(db, "typing");
-const gameRef = ref(db, "game");
 
-// Elements
 const body = document.body;
 const themeBtn = document.getElementById('themeBtn');
 const chatBtn = document.getElementById('chatBtn');
@@ -85,94 +79,69 @@ const sendBtn = document.getElementById('sendBtn');
 const gameCanvas = document.getElementById('gameCanvas');
 const ctx = gameCanvas.getContext('2d');
 
-// Dark/Light
-themeBtn.addEventListener('click', () => {
-    body.classList.toggle('dark-mode');
-    body.classList.toggle('light-mode');
-});
-
-// Switch Modes
+themeBtn.addEventListener('click', ()=>{ body.classList.toggle('dark-mode'); body.classList.toggle('light-mode'); });
 chatBtn.addEventListener('click', ()=>{ chatContainer.style.display='block'; gameContainer.style.display='none'; });
 gameBtn.addEventListener('click', ()=>{ chatContainer.style.display='none'; gameContainer.style.display='block'; });
 
-// Password
-const storedPassword = localStorage.getItem('chatPassword');
-if(storedPassword==='Halama'){ passwordContainer.style.display='none'; chatContainer.style.display='block'; initChat(); }
-
-function checkPassword(){
-  const entered = passwordInput.value.trim();
-  if(entered==='Halama'){
-    localStorage.setItem('chatPassword', entered);
+// PASSWORD HANDLING
+function enterPassword(){
+  const val = passwordInput.value.trim();
+  if(val==='Halama'){
+    localStorage.setItem('chatPassword', val);
     passwordContainer.style.display='none';
     chatContainer.style.display='block';
     initChat();
-  } else { passwordError.style.display='block'; }
+  } else {
+    passwordError.style.display='block';
+  }
 }
-passwordBtn.addEventListener('click', checkPassword);
-passwordInput.addEventListener('keyup', e=>{ if(e.key==='Enter') checkPassword(); });
+passwordBtn.addEventListener('click', enterPassword);
+passwordInput.addEventListener('keyup', e=>{ if(e.key==='Enter') enterPassword(); });
 
-// Chat
+// Auto-check stored password
+if(localStorage.getItem('chatPassword')==='Halama'){
+  passwordContainer.style.display='none';
+  chatContainer.style.display='block';
+  initChat();
+}
+
+// CHAT FUNCTIONS
 function initChat(){
-    let userName = sessionStorage.getItem('chatName');
-    if(!userName){ userName = prompt("Choose your chat name for this session:") || "Anonymous"; sessionStorage.setItem('chatName', userName); }
+  let userName = sessionStorage.getItem('chatName');
+  if(!userName){ userName = prompt("Choose your chat name for this session:") || "Anonymous"; sessionStorage.setItem('chatName', userName); }
 
-    onChildAdded(chatRef, snapshot => {
-        const data = snapshot.val();
-        const msg = document.createElement('div');
-        msg.className='msg';
-        msg.textContent=`${data.name}: ${data.text}`;
-        chatDiv.appendChild(msg);
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-    });
+  onChildAdded(chatRef, snapshot=>{
+    const data = snapshot.val();
+    const msg = document.createElement('div');
+    msg.className='msg';
+    msg.textContent=`${data.name}: ${data.text}`;
+    chatDiv.appendChild(msg);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  });
 
-    messageInput.addEventListener('input', ()=>{
-        set(typingRef,{name:userName,typing:messageInput.value.trim()!==' '});
-    });
+  messageInput.addEventListener('input', ()=>{ set(typingRef,{name:userName,typing:messageInput.value.trim()!==''}); });
+  onValue(typingRef, snapshot=>{
+    const data = snapshot.val();
+    if(data && data.name!==userName && data.typing) typingIndicatorDiv.textContent=`${data.name} is typing...`;
+    else typingIndicatorDiv.textContent='';
+  });
 
-    onValue(typingRef, snapshot=>{
-        const data = snapshot.val();
-        if(data && data.name!==userName && data.typing) typingIndicatorDiv.textContent=`${data.name} is typing...`;
-        else typingIndicatorDiv.textContent='';
-    });
+  function sendMessage(){ const t=messageInput.value.trim(); if(!t) return; push(chatRef,{name:userName,text:t}); messageInput.value=''; set(typingRef,{name:userName,typing:false}); }
+  sendBtn.addEventListener('click',sendMessage);
+  messageInput.addEventListener('keyup', e=>{ if(e.key==='Enter') sendMessage(); });
+  window.addEventListener('beforeunload', ()=>{ set(typingRef,{name:userName,typing:false}); });
 
-    function sendMessage(){ const text=messageInput.value.trim(); if(!text) return; push(chatRef,{name:userName,text}); messageInput.value=''; set(typingRef,{name:userName,typing:false}); }
-    sendBtn.addEventListener('click',sendMessage);
-    messageInput.addEventListener('keyup',e=>{ if(e.key==='Enter') sendMessage(); });
-    window.addEventListener('beforeunload',()=>{ set(typingRef,{name:userName,typing:false}); });
-
-    // Init game
-    initGame(userName);
+  initGame(userName);
 }
 
-// Multiplayer Pong Game
-let player = {y:120}, opponent={y:120}, ball={x:200,y:150,dx:2,dy:2};
+// SIMPLE GAME PLACEHOLDER
 function initGame(userName){
-    onValue(gameRef, snapshot=>{
-        const data = snapshot.val();
-        if(!data) return;
-        if(data.player1!==userName){ opponent.y=data.player1Y||120; } // opponent paddle
-        ball.x = data.ballX; ball.y = data.ballY;
-    });
+  ctx.fillStyle='white';
+  ctx.font='20px Arial';
+  ctx.textAlign='center';
+  ctx.fillText('Pong Game Coming Soon!',200,150);
+}
 
-    let isPlayer1 = false;
-    onValue(gameRef, snapshot=>{
-        const data=snapshot.val();
-        if(!data){ set(gameRef,{player1:userName,player1Y:player.y,ballX:ball.x,ballY:ball.y}); isPlayer1=true;}
-    });
-
-    // Touch controls
-    let touchStartY=0;
-    gameCanvas.addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; });
-    gameCanvas.addEventListener('touchmove', e=>{
-        const delta=e.touches[0].clientY-touchStartY;
-        player.y=Math.max(0, Math.min(240, player.y+delta));
-        touchStartY=e.touches[0].clientY;
-    });
-
-    function updateGame(){
-        // Ball movement
-        ball.x+=ball.dx; ball.y+=ball.dy;
-        if(ball.y<0 || ball.y>290) ball.dy*=-1;
-
-        // Paddle collision
-        if(ball.x<10 && ball.y>player.y && ball
+</script>
+</body>
+</html>
