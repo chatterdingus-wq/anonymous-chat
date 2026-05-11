@@ -3,30 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat + Multiplayer Pong</title>
+<title>Simple Anonymous Chat</title>
 <style>
-body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 20px auto; transition: background 0.3s, color 0.3s; }
-.light-mode { background: #f9f9f9; color: #222; }
-.dark-mode { background: #121212; color: #eee; }
-#chatContainer, #gameContainer { display: none; }
-#chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-.msg { margin-bottom: 5px; }
-#typingIndicator { font-style: italic; color: #555; height: 20px; margin-bottom: 5px; }
-#message { width: 70%; padding: 8px; margin-bottom: 5px; border-radius: 5px; border: 1px solid #ccc; outline: none; }
-button { padding: 7px 12px; border-radius: 5px; border: none; cursor: pointer; margin-bottom: 5px; }
-#themeBtn { margin-bottom: 10px; }
-#gameCanvas { border: 1px solid #555; background: #000; display:block; margin: 10px auto; touch-action: none; }
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        max-width: 600px;
+        margin: 20px auto;
+        transition: background 0.3s, color 0.3s;
+    }
+    .light-mode {
+        background: #f9f9f9;
+        color: #222;
+    }
+    .dark-mode {
+        background: #121212;
+        color: #eee;
+    }
+    #chatContainer { display: none; }
+    #chat {
+        border: 1px solid #ccc;
+        height: 400px;
+        overflow-y: scroll;
+        padding: 10px;
+        background: inherit;
+        margin-bottom: 10px;
+        white-space: pre-wrap; /* preserve line breaks */
+    }
+    .msg {
+        margin-bottom: 5px;
+    }
+    #typingIndicator {
+        font-style: italic;
+        color: #555;
+        height: 20px;
+        margin-bottom: 5px;
+    }
+    #message {
+        width: 70%;
+        padding: 8px;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        outline: none;
+    }
+    button {
+        padding: 7px 12px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+    #themeBtn {
+        margin-bottom: 10px;
+    }
 </style>
 </head>
 <body class="light-mode">
 
-<h1>Chat + Multiplayer Pong</h1>
+<h1>Simple Anonymous Chat 💬</h1>
 <button id="themeBtn">Toggle Dark/Light Mode</button>
-<button id="chatBtn">Chat Mode</button>
-<button id="gameBtn">Game Mode</button>
 
 <div id="passwordContainer">
-  <p>Please enter the password to join. Hint: <em>jaky je jmeno tomáše?</em></p>
+  <p>Please enter the password to join the chat. Hint: <em>jaky je jmeno tomáše?</em></p>
   <input type="password" id="passwordInput" placeholder="Password" />
   <button id="passwordBtn">Enter</button>
   <p id="passwordError" style="color:red; display:none;">Incorrect password!</p>
@@ -39,15 +76,11 @@ button { padding: 7px 12px; border-radius: 5px; border: none; cursor: pointer; m
   <button id="sendBtn">Send</button>
 </div>
 
-<div id="gameContainer">
-  <canvas id="gameCanvas" width="400" height="300"></canvas>
-</div>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, set, onValue } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
 
-// Firebase
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
   authDomain: "anonymouschatters-86252.firebaseapp.com",
@@ -58,107 +91,109 @@ const firebaseConfig = {
   appId: "1:108101708489:web:c564c231a80391409bfb18",
   measurementId: "G-KVWSMMZJ8C"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "messages");
 const typingRef = ref(db, "typing");
-const gameRef = ref(db, "pong");
 
 // Elements
 const body = document.body;
 const themeBtn = document.getElementById('themeBtn');
-const chatBtn = document.getElementById('chatBtn');
-const gameBtn = document.getElementById('gameBtn');
 const passwordInput = document.getElementById('passwordInput');
 const passwordBtn = document.getElementById('passwordBtn');
 const passwordError = document.getElementById('passwordError');
 const chatContainer = document.getElementById('chatContainer');
 const passwordContainer = document.getElementById('passwordContainer');
-const gameContainer = document.getElementById('gameContainer');
 const chatDiv = document.getElementById('chat');
 const typingIndicatorDiv = document.getElementById('typingIndicator');
 const messageInput = document.getElementById('message');
 const sendBtn = document.getElementById('sendBtn');
-const gameCanvas = document.getElementById('gameCanvas');
-const ctx = gameCanvas.getContext('2d');
 
-themeBtn.addEventListener('click', ()=>{ body.classList.toggle('dark-mode'); body.classList.toggle('light-mode'); });
-chatBtn.addEventListener('click', ()=>{ chatContainer.style.display='block'; gameContainer.style.display='none'; });
-gameBtn.addEventListener('click', ()=>{ chatContainer.style.display='none'; gameContainer.style.display='block'; });
+// Dark/Light Mode Toggle
+themeBtn.addEventListener('click', () => {
+    if(body.classList.contains('light-mode')){
+        body.classList.remove('light-mode');
+        body.classList.add('dark-mode');
+    } else {
+        body.classList.remove('dark-mode');
+        body.classList.add('light-mode');
+    }
+});
 
-// PASSWORD
-function enterPassword(){
-  if(passwordInput.value.trim()==='Halama'){
-    localStorage.setItem('chatPassword','Halama');
-    passwordContainer.style.display='none';
-    chatContainer.style.display='block';
+// Check stored password
+const storedPassword = localStorage.getItem('chatPassword');
+if(storedPassword === 'Halama'){
+    passwordContainer.style.display = 'none';
+    chatContainer.style.display = 'block';
     initChat();
-  } else passwordError.style.display='block';
 }
-passwordBtn.addEventListener('click', enterPassword);
-passwordInput.addEventListener('keyup', e=>{ if(e.key==='Enter') enterPassword(); });
-if(localStorage.getItem('chatPassword')==='Halama'){ passwordContainer.style.display='none'; chatContainer.style.display='block'; initChat(); }
 
-// CHAT
 function initChat(){
-  let userName = sessionStorage.getItem('chatName');
-  if(!userName){ userName = prompt("Choose your chat name:") || "Anonymous"; sessionStorage.setItem('chatName', userName); }
+    // Get username per session
+    let userName = sessionStorage.getItem('chatName');
+    if(!userName){
+        userName = prompt("Choose your chat name for this session:") || "Anonymous";
+        sessionStorage.setItem('chatName', userName);
+    }
 
-  onChildAdded(chatRef, snapshot=>{
-    const data = snapshot.val();
-    const msg = document.createElement('div');
-    msg.className='msg';
-    msg.textContent=`${data.name}: ${data.text}`;
-    chatDiv.appendChild(msg);
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-  });
+    // Listen for new messages
+    onChildAdded(chatRef, (snapshot) => {
+        const data = snapshot.val();
+        const msg = document.createElement('div');
+        msg.className = 'msg';
+        msg.textContent = `${data.name}: ${data.text}`;
+        chatDiv.appendChild(msg);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    });
 
-  messageInput.addEventListener('input', ()=>{ set(typingRef,{name:userName,typing:messageInput.value.trim()!==''}); });
-  onValue(typingRef, snapshot=>{
-    const data = snapshot.val();
-    if(data && data.name!==userName && data.typing) typingIndicatorDiv.textContent=`${data.name} is typing...`;
-    else typingIndicatorDiv.textContent='';
-  });
+    // Typing indicator
+    messageInput.addEventListener('input', () => {
+        set(typingRef, { name: userName, typing: messageInput.value.trim() !== '' });
+    });
 
-  function sendMessage(){ const t=messageInput.value.trim(); if(!t) return; push(chatRef,{name:userName,text:t}); messageInput.value=''; set(typingRef,{name:userName,typing:false}); }
-  sendBtn.addEventListener('click',sendMessage);
-  messageInput.addEventListener('keyup', e=>{ if(e.key==='Enter') sendMessage(); });
+    onValue(typingRef, snapshot => {
+        const data = snapshot.val();
+        if(data && data.name !== userName && data.typing){
+            typingIndicatorDiv.textContent = `${data.name} is typing...`;
+        } else {
+            typingIndicatorDiv.textContent = '';
+        }
+    });
 
-  initPong(userName);
+    // Send message
+    function sendMessage(){
+        const text = messageInput.value.trim();
+        if(!text) return;
+        push(chatRef, { name: userName, text });
+        messageInput.value = '';
+        set(typingRef, { name: userName, typing: false });
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keyup', (e)=>{ if(e.key==='Enter') sendMessage(); });
+
+    window.addEventListener('beforeunload', () => {
+        set(typingRef, { name: userName, typing: false });
+    });
 }
 
-// PONG GAME
-let paddleHeight = 60, paddleWidth = 10, ballSize = 10;
-let paddle1Y=120, paddle2Y=120, ballX=200, ballY=150, ballDX=2, ballDY=2;
-let playerRole = null;
+// Password check
+function checkPassword(){
+    const entered = passwordInput.value.trim();
+    if(entered === 'Halama'){
+        localStorage.setItem('chatPassword', entered);
+        passwordContainer.style.display = 'none';
+        chatContainer.style.display = 'block';
+        initChat();
+    } else {
+        passwordError.style.display = 'block';
+    }
+}
 
-function initPong(userName){
-  // Determine player role
-  onValue(gameRef, snapshot=>{
-    const data = snapshot.val();
-    if(!data){ set(gameRef,{player1:userName,paddle1Y,player2:null,paddle2Y,ballX,ballY,ballDX,ballDY}); playerRole='player1'; }
-    else if(!data.player2 && data.player1!==userName){ set(ref(db,'pong/player2'),userName); playerRole='player2'; }
-    else if(data.player1===userName) playerRole='player1';
-    else if(data.player2===userName) playerRole='player2';
-  });
+passwordBtn.addEventListener('click', checkPassword);
+passwordInput.addEventListener('keyup', e=>{ if(e.key==='Enter') checkPassword(); });
 
-  // Sync paddles and ball
-  onValue(gameRef, snapshot=>{
-    const data = snapshot.val();
-    if(!data) return;
-    paddle1Y=data.paddle1Y||paddle1Y;
-    paddle2Y=data.paddle2Y||paddle2Y;
-    ballX=data.ballX||ballX;
-    ballY=data.ballY||ballY;
-    ballDX=data.ballDX||ballDX;
-    ballDY=data.ballDY||ballDY;
-  });
-
-  // Touch control
-  let touchStartY=0;
-  gameCanvas.addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; });
-  gameCanvas.addEventListener('touchmove', e=>{
-    const delta=e.touches[0].clientY-touchStartY;
-    if(playerRole==='player1'){ paddle1Y=Math.max(0,Math.min(240,paddle1Y+delta)); set(ref(db,'pong/paddle1Y'),paddle1Y);
+</script>
 </body>
 </html>
