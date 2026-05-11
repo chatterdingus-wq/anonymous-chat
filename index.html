@@ -83,11 +83,8 @@ function initChat() {
     const imageInput = document.getElementById('imageInput');
     const imagePreview = document.getElementById('imagePreview');
 
-    let userName = localStorage.getItem('chatName');
-    if (!userName) {
-        userName = prompt("Choose your chat name (will be remembered on this browser):") || "Anonymous";
-        localStorage.setItem('chatName', userName);
-    }
+    let userName = localStorage.getItem('chatName') || prompt("Choose your chat name:") || "Anonymous";
+    localStorage.setItem('chatName', userName);
 
     if ("Notification" in window && Notification.permission !== "granted") {
         Notification.requestPermission();
@@ -132,25 +129,26 @@ function initChat() {
         const text = messageInput.value.trim();
         const file = imageInput.files[0];
 
-        if (!text && !file) return;
+        if (!text && !file) return alert("Type a message or select an image!");
 
         if (file) {
-            const storageRef = storage.ref('chat_images/' + Date.now() + '_' + file.name);
-            storageRef.put(file).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(url => {
-                    chatRef.push({ name: userName, text, imageURL: url });
-                    imagePreview.style.display = 'none';
-                });
-            });
+            const storageRef = storage.ref(`chat_images/${Date.now()}_${file.name}`);
+            storageRef.put(file)
+            .then(snapshot => snapshot.ref.getDownloadURL())
+            .then(url => {
+                chatRef.push({ name: userName, text, imageURL: url });
+                imagePreview.style.display = 'none';
+                imageInput.value = '';
+            })
+            .catch(err => console.error("Upload failed:", err));
         } else {
             chatRef.push({ name: userName, text });
         }
 
         messageInput.value = '';
-        imageInput.value = '';
     };
 
-    messageInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') sendMessage(); });
+    messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 
     window.runCommand = function() {
         const cmd = consoleInput.value.trim();
@@ -164,7 +162,7 @@ function initChat() {
         consoleInput.value = '';
     };
 
-    consoleInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') runCommand(); });
+    consoleInput.addEventListener('keyup', e => { if (e.key === 'Enter') runCommand(); });
 }
 </script>
 
