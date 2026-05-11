@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chat + Pong Game</title>
+<title>Chat + Multiplayer Pong</title>
 <style>
 body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 20px auto; transition: background 0.3s, color 0.3s; }
 .light-mode { background: #f9f9f9; color: #222; }
@@ -20,13 +20,13 @@ button { padding: 7px 12px; border-radius: 5px; border: none; cursor: pointer; m
 </head>
 <body class="light-mode">
 
-<h1>Chat + Pong Game</h1>
+<h1>Chat + Multiplayer Pong</h1>
 <button id="themeBtn">Toggle Dark/Light Mode</button>
 <button id="chatBtn">Chat Mode</button>
 <button id="gameBtn">Game Mode</button>
 
 <div id="passwordContainer">
-  <p>Please enter the password to join the chat/game. Hint: <em>jaky je jmeno tomáše?</em></p>
+  <p>Please enter the password to join. Hint: <em>jaky je jmeno tomáše?</em></p>
   <input type="password" id="passwordInput" placeholder="Password" />
   <button id="passwordBtn">Enter</button>
   <p id="passwordError" style="color:red; display:none;">Incorrect password!</p>
@@ -47,6 +47,7 @@ button { padding: 7px 12px; border-radius: 5px; border: none; cursor: pointer; m
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
 import { getDatabase, ref, push, onChildAdded, set, onValue } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-database.js";
 
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDsC5GGUEWzBagQhiEgIet96fRyqElIgWw",
   authDomain: "anonymouschatters-86252.firebaseapp.com",
@@ -61,7 +62,9 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const chatRef = ref(db, "messages");
 const typingRef = ref(db, "typing");
+const gameRef = ref(db, "pong");
 
+// Elements
 const body = document.body;
 const themeBtn = document.getElementById('themeBtn');
 const chatBtn = document.getElementById('chatBtn');
@@ -83,32 +86,23 @@ themeBtn.addEventListener('click', ()=>{ body.classList.toggle('dark-mode'); bod
 chatBtn.addEventListener('click', ()=>{ chatContainer.style.display='block'; gameContainer.style.display='none'; });
 gameBtn.addEventListener('click', ()=>{ chatContainer.style.display='none'; gameContainer.style.display='block'; });
 
-// PASSWORD HANDLING
+// PASSWORD
 function enterPassword(){
-  const val = passwordInput.value.trim();
-  if(val==='Halama'){
-    localStorage.setItem('chatPassword', val);
+  if(passwordInput.value.trim()==='Halama'){
+    localStorage.setItem('chatPassword','Halama');
     passwordContainer.style.display='none';
     chatContainer.style.display='block';
     initChat();
-  } else {
-    passwordError.style.display='block';
-  }
+  } else passwordError.style.display='block';
 }
 passwordBtn.addEventListener('click', enterPassword);
 passwordInput.addEventListener('keyup', e=>{ if(e.key==='Enter') enterPassword(); });
+if(localStorage.getItem('chatPassword')==='Halama'){ passwordContainer.style.display='none'; chatContainer.style.display='block'; initChat(); }
 
-// Auto-check stored password
-if(localStorage.getItem('chatPassword')==='Halama'){
-  passwordContainer.style.display='none';
-  chatContainer.style.display='block';
-  initChat();
-}
-
-// CHAT FUNCTIONS
+// CHAT
 function initChat(){
   let userName = sessionStorage.getItem('chatName');
-  if(!userName){ userName = prompt("Choose your chat name for this session:") || "Anonymous"; sessionStorage.setItem('chatName', userName); }
+  if(!userName){ userName = prompt("Choose your chat name:") || "Anonymous"; sessionStorage.setItem('chatName', userName); }
 
   onChildAdded(chatRef, snapshot=>{
     const data = snapshot.val();
@@ -129,19 +123,42 @@ function initChat(){
   function sendMessage(){ const t=messageInput.value.trim(); if(!t) return; push(chatRef,{name:userName,text:t}); messageInput.value=''; set(typingRef,{name:userName,typing:false}); }
   sendBtn.addEventListener('click',sendMessage);
   messageInput.addEventListener('keyup', e=>{ if(e.key==='Enter') sendMessage(); });
-  window.addEventListener('beforeunload', ()=>{ set(typingRef,{name:userName,typing:false}); });
 
-  initGame(userName);
+  initPong(userName);
 }
 
-// SIMPLE GAME PLACEHOLDER
-function initGame(userName){
-  ctx.fillStyle='white';
-  ctx.font='20px Arial';
-  ctx.textAlign='center';
-  ctx.fillText('Pong Game Coming Soon!',200,150);
-}
+// PONG GAME
+let paddleHeight = 60, paddleWidth = 10, ballSize = 10;
+let paddle1Y=120, paddle2Y=120, ballX=200, ballY=150, ballDX=2, ballDY=2;
+let playerRole = null;
 
-</script>
+function initPong(userName){
+  // Determine player role
+  onValue(gameRef, snapshot=>{
+    const data = snapshot.val();
+    if(!data){ set(gameRef,{player1:userName,paddle1Y,player2:null,paddle2Y,ballX,ballY,ballDX,ballDY}); playerRole='player1'; }
+    else if(!data.player2 && data.player1!==userName){ set(ref(db,'pong/player2'),userName); playerRole='player2'; }
+    else if(data.player1===userName) playerRole='player1';
+    else if(data.player2===userName) playerRole='player2';
+  });
+
+  // Sync paddles and ball
+  onValue(gameRef, snapshot=>{
+    const data = snapshot.val();
+    if(!data) return;
+    paddle1Y=data.paddle1Y||paddle1Y;
+    paddle2Y=data.paddle2Y||paddle2Y;
+    ballX=data.ballX||ballX;
+    ballY=data.ballY||ballY;
+    ballDX=data.ballDX||ballDX;
+    ballDY=data.ballDY||ballDY;
+  });
+
+  // Touch control
+  let touchStartY=0;
+  gameCanvas.addEventListener('touchstart', e=>{ touchStartY=e.touches[0].clientY; });
+  gameCanvas.addEventListener('touchmove', e=>{
+    const delta=e.touches[0].clientY-touchStartY;
+    if(playerRole==='player1'){ paddle1Y=Math.max(0,Math.min(240,paddle1Y+delta)); set(ref(db,'pong/paddle1Y'),paddle1Y);
 </body>
 </html>
